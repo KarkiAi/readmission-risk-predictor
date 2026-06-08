@@ -32,3 +32,26 @@ Performance metrics expected to improve substantially with real-world
 or larger synthetic datasets. XGBoost advantage over logistic regression
 will emerge at 1000+ encounters.
 
+## Model Updates & Changelog
+
+### v1.1 — June 2026
+- Removed MED_COUNT feature after QA identified out-of-distribution 
+  failure on cumulative medication counts
+- Retained POLYPHARMACY binary flag (5+ meds) — clinically equivalent 
+  to LACE score methodology and more stable on small datasets
+- Finding: SHAP waterfall showed MED_COUNT incorrectly suppressing 
+  risk scores for high-risk patients
+- Fix: Binary polypharmacy flag eliminates continuous range instability
+- AUC improved: Logistic Regression 0.850 → 0.938, XGBoost 0.750 → 0.856
+
+### v1.0 — June 2026
+- Initial release with XGBoost (AUC 0.75) and Logistic Regression (AUC 0.85)
+- Trained on 101 Synthea synthetic inpatient encounters
+- SHAP explainability integrated
+- Deployed to Streamlit Community Cloud
+
+## Known Limitations
+- Trained on 101 synthetic inpatient encounters (Synthea)
+- Predicts 90-day readmission window
+- Performance expected to improve with larger dataset (500+ encounters)
+- Not for clinical use — demonstration only
