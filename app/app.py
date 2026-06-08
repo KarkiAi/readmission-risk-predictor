@@ -44,7 +44,7 @@ st.sidebar.markdown("Adjust values to match patient profile at discharge")
 age = st.sidebar.slider("Age at Encounter", 18, 95, 65)
 los = st.sidebar.slider("Length of Stay (days)", 0, 30, 3)
 gender = st.sidebar.radio("Gender", ["Female", "Male"])
-med_count = st.sidebar.slider("Cumulative Medication Count", 0, 800, 50)
+polypharmacy_input = st.sidebar.checkbox("Polypharmacy (5+ medications)", value=True)
 condition_count = st.sidebar.slider("Active Condition Count", 0, 150, 20)
 prior_visits = st.sidebar.slider("Prior Visits (last 6 months)", 0, 20, 3)
 prior_inpatient = st.sidebar.slider("Prior Inpatient Stays (total)", 0, 30, 1)
@@ -52,14 +52,13 @@ high_risk = st.sidebar.checkbox("High-Risk Diagnosis (CHF, COPD, Diabetes, CKD)"
 
 # ── Derive features ──────────────────────────────────────────
 gender_encoded = 1 if gender == "Male" else 0
-polypharmacy = 1 if med_count >= 5 else 0
+polypharmacy = 1 if polypharmacy_input else 0
 high_risk_flag = 1 if high_risk else 0
 
 input_data = pd.DataFrame([{
     'AGE_AT_ENCOUNTER': age,
     'LENGTH_OF_STAY': los,
     'GENDER_ENCODED': gender_encoded,
-    'MED_COUNT': med_count,
     'POLYPHARMACY': polypharmacy,
     'CONDITION_COUNT': condition_count,
     'HIGH_RISK_CONDITION': high_risk_flag,
@@ -94,16 +93,28 @@ with col3:
 
 st.divider()
 
-# ── SHAP explanation ─────────────────────────────────────────
 st.subheader("🔍 Why This Risk Score? (SHAP Explanation)")
 
 explainer = shap.Explainer(xgb)
 shap_values = explainer(input_data)
 
-fig, ax = plt.subplots(figsize=(10, 4))
-shap.plots.waterfall(shap_values[0], max_display=9, show=False)
-st.pyplot(fig)
-plt.close()
+# Show SHAP values as a clean table
+vals = shap_values[0].values
+names = shap_values[0].feature_names
+
+shap_df = pd.DataFrame({
+    'Feature': names,
+    'Impact': vals
+}).sort_values('Impact', ascending=False)
+
+shap_df['Direction'] = shap_df['Impact'].apply(
+    lambda x: '🔴 Increases Risk' if x > 0 else '🔵 Decreases Risk'
+)
+shap_df['Impact'] = shap_df['Impact'].round(3)
+
+st.dataframe(shap_df, use_container_width=True)
+
+
 
 # ── Clinical interpretation ──────────────────────────────────
 st.divider()
@@ -115,7 +126,6 @@ st.markdown(f"""
 | Age | {age} years |
 | Length of Stay | {los} days |
 | Gender | {gender} |
-| Medication Count | {med_count} |
 | Polypharmacy | {'Yes' if polypharmacy else 'No'} |
 | Active Conditions | {condition_count} |
 | High-Risk Diagnosis | {'Yes' if high_risk else 'No'} |
