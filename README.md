@@ -171,10 +171,16 @@ real-world disparities, so this version cannot fully demonstrate
 fairness auditing on meaningful subgroups. Version 2.1 will address 
 this with a formal subgroup fairness audit.
 
+## Known Limitations
+
+## Known Limitations
+
 - Trained on 101 synthetic inpatient encounters (Synthea)
-- Predicts 90-day readmission window
+- Used 90-day readmission window during training to ensure 
+  sufficient positive cases (30-day window yielded only 6 
+  readmission events on current dataset)
+- Active development — v2.1 will include additional QA, 
+  feature refinement, and fairness audit framework
 - Race/ethnicity fairness audit not meaningful on synthetic data
 - Real-world validation required before any clinical use
 - Not for clinical use — demonstration only
-
----
