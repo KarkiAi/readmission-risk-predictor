@@ -15,16 +15,26 @@ st.set_page_config(
 # ── Load model ───────────────────────────────────────────────
 @st.cache_resource
 def load_model():
-    xgb = joblib.load('models/xgb_readmission.pkl')
-    lr  = joblib.load('models/lr_readmission.pkl')
+    xgb = joblib.load('models/xgb_readmission_v2.pkl')
+    lr  = joblib.load('models/lr_readmission_v2.pkl')
     return xgb, lr
 
 xgb, lr = load_model()
 
 FEATURES = [
-    'AGE_AT_ENCOUNTER', 'LENGTH_OF_STAY', 'GENDER_ENCODED',
-    'MED_COUNT', 'POLYPHARMACY', 'CONDITION_COUNT',
-    'HIGH_RISK_CONDITION', 'PRIOR_VISITS_6MO', 'PRIOR_INPATIENT_TOTAL'
+    'AGE_AT_ENCOUNTER',
+    'LENGTH_OF_STAY',
+    'GENDER_ENCODED',
+    'POLYPHARMACY',
+    'CONDITION_COUNT',
+    'HIGH_RISK_CONDITION',
+    'PRIOR_VISITS_6MO',
+    'PRIOR_INPATIENT_TOTAL',
+    'EMERGENCY_VISITS_6MO',
+    'LOW_INCOME',
+    'HIGH_PROCEDURE_BURDEN',
+    'WINTER_DISCHARGE',
+    'MARITAL_ENCODED'
 ]
 
 # ── Header ───────────────────────────────────────────────────
@@ -44,7 +54,12 @@ st.sidebar.markdown("Adjust values to match patient profile at discharge")
 age = st.sidebar.slider("Age at Encounter", 18, 95, 65)
 los = st.sidebar.slider("Length of Stay (days)", 0, 30, 3)
 gender = st.sidebar.radio("Gender", ["Female", "Male"])
-polypharmacy_input = st.sidebar.checkbox("Polypharmacy (5+ medications)", value=True)
+polypharmacy_input = st.sidebar.checkbox("Taking 5 or more medications", value=True)
+emergency_visits = st.sidebar.slider("Emergency Visits (last 6 months)", 0, 10, 0)
+low_income = st.sidebar.checkbox("Low Income Household (under $50,000)", value=False)
+high_procedure = st.sidebar.checkbox("High Procedure Burden (10+ procedures)", value=False)
+winter_discharge = st.sidebar.checkbox("Winter Discharge (Dec-Feb)", value=False)
+married = st.sidebar.checkbox("Married / Has Partner", value=False)
 condition_count = st.sidebar.slider("Active Condition Count", 0, 150, 20)
 prior_visits = st.sidebar.slider("Prior Visits (last 6 months)", 0, 20, 3)
 prior_inpatient = st.sidebar.slider("Prior Inpatient Stays (total)", 0, 30, 1)
@@ -53,6 +68,11 @@ high_risk = st.sidebar.checkbox("High-Risk Diagnosis (CHF, COPD, Diabetes, CKD)"
 # ── Derive features ──────────────────────────────────────────
 gender_encoded = 1 if gender == "Male" else 0
 polypharmacy = 1 if polypharmacy_input else 0
+emergency_visits_6mo = emergency_visits
+low_income_flag = 1 if low_income else 0
+high_procedure_flag = 1 if high_procedure else 0
+winter_discharge_flag = 1 if winter_discharge else 0
+marital_encoded = 1 if married else 0
 high_risk_flag = 1 if high_risk else 0
 
 input_data = pd.DataFrame([{
@@ -63,7 +83,12 @@ input_data = pd.DataFrame([{
     'CONDITION_COUNT': condition_count,
     'HIGH_RISK_CONDITION': high_risk_flag,
     'PRIOR_VISITS_6MO': prior_visits,
-    'PRIOR_INPATIENT_TOTAL': prior_inpatient
+    'PRIOR_INPATIENT_TOTAL': prior_inpatient,
+    'EMERGENCY_VISITS_6MO': emergency_visits_6mo,
+    'LOW_INCOME': low_income_flag,
+    'HIGH_PROCEDURE_BURDEN': high_procedure_flag,
+    'WINTER_DISCHARGE': winter_discharge_flag,
+    'MARITAL_ENCODED': marital_encoded
 }])
 
 # ── Predictions ──────────────────────────────────────────────
