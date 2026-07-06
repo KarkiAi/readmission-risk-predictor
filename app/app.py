@@ -15,8 +15,8 @@ st.set_page_config(
 # ── Load model ───────────────────────────────────────────────
 @st.cache_resource
 def load_model():
-    xgb = joblib.load('models/xgb_readmission_v2.pkl')
-    lr  = joblib.load('models/lr_readmission_v2.pkl')
+    xgb = joblib.load('models/xgb_readmission_v21.pkl')
+    lr  = joblib.load('models/lr_readmission_v21.pkl')
     return xgb, lr
 
 xgb, lr = load_model()
@@ -32,9 +32,8 @@ FEATURES = [
     'PRIOR_INPATIENT_TOTAL',
     'EMERGENCY_VISITS_6MO',
     'LOW_INCOME',
-    'HIGH_PROCEDURE_BURDEN',
-    'WINTER_DISCHARGE',
-    'MARITAL_ENCODED'
+    'MARITAL_ENCODED',
+    'SOCIAL_ISOLATION'
 ]
 
 # ── Header ───────────────────────────────────────────────────
@@ -57,9 +56,8 @@ gender = st.sidebar.radio("Gender", ["Female", "Male"])
 polypharmacy_input = st.sidebar.checkbox("Taking 5 or more medications", value=True)
 emergency_visits = st.sidebar.slider("Emergency Visits (last 6 months)", 0, 10, 0)
 low_income = st.sidebar.checkbox("Low Income Household (under $50,000)", value=False)
-high_procedure = st.sidebar.checkbox("High Procedure Burden (10+ procedures)", value=False)
-winter_discharge = st.sidebar.checkbox("Winter Discharge (Dec-Feb)", value=False)
 married = st.sidebar.checkbox("Married / Has Partner", value=False)
+social_isolation = st.sidebar.checkbox("Social Isolation (documented)", value=False)
 condition_count = st.sidebar.slider("Active Condition Count", 0, 150, 20)
 prior_visits = st.sidebar.slider("Prior Visits (last 6 months)", 0, 20, 3)
 prior_inpatient = st.sidebar.slider("Prior Inpatient Stays (total)", 0, 30, 1)
@@ -70,9 +68,8 @@ gender_encoded = 1 if gender == "Male" else 0
 polypharmacy = 1 if polypharmacy_input else 0
 emergency_visits_6mo = emergency_visits
 low_income_flag = 1 if low_income else 0
-high_procedure_flag = 1 if high_procedure else 0
-winter_discharge_flag = 1 if winter_discharge else 0
 marital_encoded = 1 if married else 0
+social_isolation_flag = 1 if social_isolation else 0
 high_risk_flag = 1 if high_risk else 0
 
 input_data = pd.DataFrame([{
@@ -86,9 +83,8 @@ input_data = pd.DataFrame([{
     'PRIOR_INPATIENT_TOTAL': prior_inpatient,
     'EMERGENCY_VISITS_6MO': emergency_visits_6mo,
     'LOW_INCOME': low_income_flag,
-    'HIGH_PROCEDURE_BURDEN': high_procedure_flag,
-    'WINTER_DISCHARGE': winter_discharge_flag,
-    'MARITAL_ENCODED': marital_encoded
+    'MARITAL_ENCODED': marital_encoded,
+    'SOCIAL_ISOLATION': social_isolation_flag
 }])
 
 # ── Predictions ──────────────────────────────────────────────
@@ -123,10 +119,11 @@ st.subheader("🔍 Why This Risk Score? (SHAP Explanation)")
 explainer = shap.Explainer(xgb)
 shap_values = explainer(input_data)
 
-# Show SHAP values as a clean table
+# Extract SHAP values
 vals = shap_values[0].values
 names = shap_values[0].feature_names
 
+# Table below chart
 shap_df = pd.DataFrame({
     'Feature': names,
     'Impact': vals
