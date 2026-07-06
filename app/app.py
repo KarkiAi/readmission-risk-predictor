@@ -58,6 +58,7 @@ emergency_visits = st.sidebar.slider("Emergency Visits (last 6 months)", 0, 10, 
 low_income = st.sidebar.checkbox("Low Income Household (under $50,000)", value=False)
 married = st.sidebar.checkbox("Married / Has Partner", value=False)
 social_isolation = st.sidebar.checkbox("Social Isolation (documented)", value=False)
+ed_admission = st.sidebar.checkbox("Admitted via Emergency Department (Acuity)", value=False)
 condition_count = st.sidebar.slider("Active Condition Count", 0, 150, 20)
 prior_visits = st.sidebar.slider("Prior Visits (last 6 months)", 0, 20, 3)
 prior_inpatient = st.sidebar.slider("Prior Inpatient Stays (total)", 0, 30, 1)
@@ -112,6 +113,48 @@ with col2:
 with col3:
     st.markdown(f"### {risk_label}")
 
+# ── LACE Score ───────────────────────────────────────────────
+def lace_L(los_days):
+    if los_days < 1: return 0
+    elif los_days == 1: return 1
+    elif los_days == 2: return 2
+    elif los_days == 3: return 3
+    elif 4 <= los_days <= 6: return 4
+    elif 7 <= los_days <= 13: return 5
+    else: return 7
+
+lace_A = 3 if ed_admission else 0
+
+def lace_C(cond_count):
+    if cond_count == 0: return 0
+    elif cond_count <= 5: return 1
+    elif cond_count <= 10: return 2
+    elif cond_count <= 15: return 3
+    else: return 5
+
+def lace_E(ed_visits):
+    return min(ed_visits, 4)
+
+lace_total = lace_L(los) + lace_A + lace_C(condition_count) + lace_E(emergency_visits)
+
+st.subheader("📐 LACE Index (Clinical Baseline)")
+lcol1, lcol2 = st.columns(2)
+with lcol1:
+    st.metric("LACE Score", f"{lace_total} / 19")
+with lcol2:
+    if lace_total >= 10:
+        st.markdown("### 🔴 HIGH RISK (LACE ≥ 10)")
+    elif lace_total >= 5:
+        st.markdown("### 🟡 MODERATE RISK")
+    else:
+        st.markdown("### 🟢 LOW RISK")
+
+st.caption("""
+LACE: Length of stay (L) + Acuity of admission (A) + Comorbidities (C) + 
+ED visits in prior 6 months (E). Note: C is approximated from active 
+condition count; the validated LACE index uses the Charlson Comorbidity 
+Index. Displayed as a clinical baseline for comparison with ML predictions.
+""")
 st.divider()
 
 st.subheader("🔍 Why This Risk Score? (SHAP Explanation)")
